@@ -112,19 +112,22 @@ IloInt checkTour(IloNumArray2 sol, IloBoolArray seen, IloNum tol)
 
 ILOUSERCUTCALLBACK2(MaxBack, Edges, x, IloNum, tol)
 {
-   NodeInfo *data = dynamic_cast<NodeInfo *>(getNodeData());
-     if (!data)
-    {
-        if (NodeInfo::rootData == NULL)
-        {
-            NodeInfo::initRootData();
-        }
-        data = NodeInfo::rootData;
-    }
+   // NodeInfo *data = dynamic_cast<NodeInfo *>(getNodeData());
+   //   if (!data)
+   //  {
+   //      if (NodeInfo::rootData == NULL)
+   //      {
+   //          NodeInfo::initRootData();
+   //      }
+   //      data = NodeInfo::rootData;
+   //  }
 
-   if (data->getIterations() >= MAX_ITER)
+   // data->addIteration();
+   // cout<<data->getIterations()<<endl;
+
+   if (getCurrentNodeDepth() >= 7 && getNiterations() >= 100)
       return;
-
+   
    IloEnv env = getEnv();
    IloInt n = x.getSize();
 
