@@ -63,26 +63,26 @@ int main(int argc, char **argv)
       }
    }
 
-   for (int i = 0; i < lambda.size(); i++)
-   {
-      for (auto j : item)
-      {
-         if (lambda[i].totalWeight + j.second <= capaticy)
-         {
-            auto it = find(lambda[i].itemSet.begin(), lambda[i].itemSet.end(), j);
-            if (it == lambda[i].itemSet.end())
-            {
-               if (j.first > lambda[i].itemSet.back().first)
-               {
-                  Combination c = lambda[i];
-                  c.itemSet.push_back(j);
-                  c.totalWeight += j.second;
-                  lambda.push_back(c);
-               }
-            }
-         }
-      }
-   }
+   // for (int i = 0; i < lambda.size(); i++)
+   // {
+   //    for (auto j : item)
+   //    {
+   //       if (lambda[i].totalWeight + j.second <= capaticy)
+   //       {
+   //          auto it = find(lambda[i].itemSet.begin(), lambda[i].itemSet.end(), j);
+   //          if (it == lambda[i].itemSet.end())
+   //          {
+   //             if (j.first > lambda[i].itemSet.back().first)
+   //             {
+   //                Combination c = lambda[i];
+   //                c.itemSet.push_back(j);
+   //                c.totalWeight += j.second;
+   //                lambda.push_back(c);
+   //             }
+   //          }
+   //       }
+   //    }
+   // }
 
    int Q = lambda.size();
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
    {
       // Start with one variable for each item combination
       IloBoolVarArray L(env, Q);
-      for (int i = 0; i < Q; i++)
+      for (int i = 0; i < n; i++)
       {
          string name = "L_" + to_string(i+1);
          L[i].setName(name.c_str());
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
       // Objective is to minimize the sum of combinations
       IloExpr obj(env);
-      for (int i = 0; i < Q; i++)
+      for (int i = 0; i < n; i++)
          obj += L[i];
       bpcg.add(IloMinimize(env, obj));
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
       for (auto i : item)
       {
          IloExpr expr(env);
-         for (IloInt j = 0; j < Q; j++){
+         for (IloInt j = 0; j < n; j++){
             auto it = find(lambda[j].itemSet.begin(), lambda[j].itemSet.end(), i);
             if (it != lambda[j].itemSet.end())
                expr += L[j];
