@@ -307,7 +307,7 @@ void findbreak(allinfo *a);
 				minknap
    ====================================================================== */
 
-stype minknap(int n, int *p, int *w, int *x, int c);
+stype minknap(int n, double *p, double *w, int *x, int c);
 
 /* ======================================================================
 				end
