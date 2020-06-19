@@ -1,198 +1,205 @@
-// #define MAX_ITER 100
+#include <ilcplex/ilocplex.h>
+#include <stdexcept> // std::invalid_argument
+#include <iostream>
+#include <fstream>
+using namespace std;
 
-// #include <ilcplex/ilocplex.h>
-// #include <vector>
-// #include <cmath>
-// #include <cstdlib>
-// #include <iostream>
-// #include <set>
-// #include <fstream>
-// #include <algorithm>
-// using namespace std;
+#define EPSILON 1e-6
 
-// struct Combination
-// {
-//    // A item set is a vector of pairs of <id,weight>
-//    vector<pair<int, int>> itemSet;
+// Read data from filename
+static void readData(const char *filename, IloNum &binCapacity,IloNumArray &itemWeight);
+static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda, IloRangeArray Fill);
+static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use, IloObjective obj);
+static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda);
 
-//    // Weight of the
-//    int totalWeight;
-// };
+int main(int argc, char **argv)
+{
+   /**
+    * User env to manage memory and identify modeling objects.
+    * */
+   IloEnv env;
+   try
+   {
+      /**
+       * Stores the capacity of my bin
+       * */
+      IloNum binCapacity;
 
-// int main(int argc, char **argv)
-// {
-//    if (argc < 2)
-//    {
-//       cout << "I need a input" << endl;
-//       return 0;
-//    }
-//    ifstream arquivo(argv[1], ios::in);
+      /**
+       * Stores the weight of each item
+       *  */
+      IloNumArray itemWeight(env);
 
-//    // Number of itens
-//    int n;
-//    arquivo >> n;
+      /**
+       * Read the input data from the data file passed as argument to the program
+       * */
+      if (argc > 1)
+         readData(argv[1], binCapacity, itemWeight);
+      else
+         throw invalid_argument("Plese, give me an input file");
 
-//    // Capacity of each bin
-//    int capaticy;
-//    arquivo >> capaticy;
+      IloInt nItens = itemWeight.getSize();
+      
+      /**
+       * Declare:
+       * - array of variables
+       * - range of constraints
+       * - an objective function
+       * - a model for the master problem
+       * */
+      IloNumVarArray Lambda(env,nItens,0,IloInfinity);
+      IloRangeArray Fill(env);
+      
+      IloModel masterBinPacking(env);
 
-//    // a item is a pair of <id,weight>
-//    vector<pair<int, int>> item;
+      /**
+       * Define variables
+       * */
+      for (int i = 0; i < nItens; i++)
+        Lambda[i].setName(("L_"+to_string(i)).c_str());
 
-//    int w;
-//    for (int i = 0; i < n; i++)
-//    {
-//       int w;
-//       arquivo >> w;
-//       item.push_back(make_pair(i, w));
-//    }
+      /**
+       * Define range
+       * */
+      for (int i = 0; i < nItens; i++)
+         Fill.add(Lambda[i] == 1); // ? ? ?
+      masterBinPacking.add(Fill);
+        
+      /**
+       * Define objective function
+       * */
+      IloObjective binsUsed = IloAdd(masterBinPacking, IloMinimize(env,IloSum(Lambda)));
 
-//    // Vector of all combinations of itens
-//    vector<Combination> lambda;
+      IloCplex binPackingSolver(masterBinPacking);
+      binPackingSolver.setOut(env.getNullStream());
 
-//    // Insert the first n itens in lambda
-//    for (int i = 0; i < n; i++)
-//    {
-//       // a item is a pair of <id,weight>
-//       if (item[i].second <= capaticy)
-//       {
-//          Combination b;
-//          b.itemSet.push_back(item[i]);
-//          b.totalWeight = item[i].second;
-//          lambda.push_back(b);
-//       }
-//    }
+      /// PATTERN-GENERATION PROBLEM ///
 
-//    for (int i = 0; i < lambda.size(); i++)
-//    {
-//       for (auto j : item)
-//       {
-//          if (lambda[i].totalWeight + j.second <= capaticy)
-//          {
-//             auto it = find(lambda[i].itemSet.begin(), lambda[i].itemSet.end(), j);
-//             if (it == lambda[i].itemSet.end())
-//             {
-//                if (j.first > lambda[i].itemSet.back().first)
-//                {
-//                   Combination c = lambda[i];
-//                   c.itemSet.push_back(j);
-//                   c.totalWeight += j.second;
-//                   lambda.push_back(c);
-//                }
-//             }
-//          }
-//       }
-//    }
+      IloModel patGen(env);
 
-//    int Q = lambda.size();
+      IloObjective ReducedCost = IloAdd(patGen, IloMinimize(env, 1));
+      IloNumVarArray Use(env, nItens, 0.0, 1, ILOINT);
+      patGen.add(IloScalProd(itemWeight, Use) <= binCapacity);
 
-//    // Set an environment
-//    IloEnv env;
-//    env.setName("bin packing");
+      IloCplex patSolver(patGen);
+      patSolver.setOut(env.getNullStream());
 
-//    // Create a model
-//    IloModel bpcg(env);
+      /// COLUMN-GENERATION PROCEDURE ///
+      IloNumArray price(env, nItens);
+      IloNumArray newPatt(env, nItens);
 
-//    bpcg.setName("A Column Generation for the Bin Packing Problem");
-//    try
-//    {
-//       // Start with one variable for each item combination
-//       IloBoolVarArray L(env, Q);
-//       for (int i = 0; i < Q; i++)
-//       {
-//          string name = "L_" + to_string(i+1);
-//          L[i].setName(name.c_str());
-//       }
+      while (true)
+      {
+         /// OPTIMIZE OVER CURRENT PATTERNS ///
 
-//       // Objective is to minimize the sum of combinations
-//       IloExpr obj(env);
-//       for (int i = 0; i < Q; i++)
-//          obj += L[i];
-//       bpcg.add(IloMinimize(env, obj));
+         binPackingSolver.solve();
+         masterDebug (binPackingSolver, Lambda, Fill);
 
-//       // A constraint for each item
-//       for (auto i : item)
-//       {
-//          IloExpr expr(env);
-//          for (IloInt j = 0; j < Q; j++){
-//             auto it = find(lambda[j].itemSet.begin(), lambda[j].itemSet.end(), i);
-//             if (it != lambda[j].itemSet.end())
-//                expr += L[j];
-//          }
-//          IloConstraint c(expr == 1);
-//          string name = "Item_" + to_string(i.first);
-//          c.setName(name.c_str());
-//          bpcg.add(c);
-//       }
+         /// FIND AND ADD A NEW PATTERN ///
 
-//       IloCplex cplex(bpcg);
-//       // Export the LP model to a txt file to check correctness
-//       cplex.exportModel("model.lp");
+         for (int i = 0; i < nItens; i++)
+            price[i] = -binPackingSolver.getDual(Fill[i]);
+         
+         ReducedCost.setLinearCoefs(Use, price);
 
-//       // Tolerance
-//       // IloNum tol = cplex.getParam(IloCplex::EpInt);
+         patSolver.solve();
+         subDebug (patSolver, Use, ReducedCost);
 
-//       bool solved = cplex.solve();
+         if (patSolver.getValue(ReducedCost) > -EPSILON){
+            break;
+         }
 
-//       if (solved)
-//          env.out() << "Optimal value "<< cplex.getObjValue() << endl;
+         patSolver.getValues(newPatt, Use);
+         Lambda.add(IloNumVar(binsUsed(1) + Fill(newPatt)));
+      }
 
-//       IloNumArray sol(env, Q);
-//       cplex.getValues(sol, L);
-       
-//        int k = 1;
-//       for (int i = 0; i < Q; i++)
-//       {
-//          if(sol[i]>0.5){
-//             cout<<"Bin "<<k++<<" : ";
-//             for(auto j:lambda[i].itemSet)
-//                cout<<j.second<<" ";
-//             cout<<"- "<<lambda[i].totalWeight<<endl;
-//          }
-//       }
-//       //             IloExpr clique(env);
-//       //             for (int i = 0; i < n; i++) {
-//       //                if ( seen[i] ) {
-//       //                   for (int j = i+1; j < n; j++) {
-//       //                      if ( seen[j] ) clique += x[j][i];
-//       //                   }
-//       //                }
-//       //             }
-//       //             cerr << cplex.getValue(clique) << " <= " << length-1 << endl;
-//       //          }
+      masterBinPacking.add(IloConversion(env, Lambda, ILOINT));
 
-//       //          // assert (length == n);
+      binPackingSolver.solve();
+      cout << "Solution status: " << binPackingSolver.getStatus() << endl;
+      resultDebug(binPackingSolver, Lambda);
+   }
+   catch (IloException &ex)
+   {
+      cerr << "Error: " << ex << endl;
+   }
+   catch (const std::invalid_argument &ia)
+   {
+      cerr << "Error: " << ia.what() << endl;
+   }
+   catch (...)
+   {
+      cerr << "Error" << endl;
+   }
 
-//       // #ifdef FULLTEST
-//       //       assert(cplex.getImpl()->isConsistent());
-//       //       assert(cpxtest.getImpl()->isConsistent());
-//       //       assert(cplex.getStatus() == IloAlgorithm::Optimal);
-//       //       assert(fabs(cplex.getObjValue() - 11461.0) < 1e-6);
-//       //       assert(cutCalled);
-//       //       env.out() << "Test completed successfully" << endl;
-//       // #endif
+   env.end();
 
-//       //       // sec.end();
+   return 0;
+}
 
-//       //       for (IloInt i = 0; i < n; i++)
-//       //          dist[i].end();
-//       //       dist.end();
-//          }
-//          catch (const IloException &e)
-//          {
-//             cerr << "Exception caught: " << e << endl;
-//       #ifdef FULLTEST
-//             assert(0);
-//       #endif
-//    }
-//    catch (...)
-//    {
-//       cerr << "Unknown exception caught!" << endl;
-// #ifdef FULLTEST
-//       assert(0);
-// #endif
-//    }
+static void readData(const char *filename, IloNum &binCapacity,
+                     IloNumArray &itemWeight)
+{
+   ifstream in(filename);
+   if (in)
+   {
+      int quantity;
+      in >> quantity;
+      in >> binCapacity;
+      int weight;
+      for (int i = 0; i < quantity; i++)
+      {
+         in >> weight;
+         itemWeight.add(weight);
+      }
+   }
+   else
+   {
+      cerr << "No such file: " << filename << endl;
+      throw(1);
+   }
+}
 
-//    env.end();
-//    return 0;
-// }
+static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda,
+                    IloRangeArray Fill)
+{
+   cout << endl;
+   cout << "Using " << binPackingSolver.getObjValue() << " bins" << endl;
+   cout << endl;
+   for (int64_t j = 0; j < Lambda.getSize(); j++)
+      cout << "  Lambda" << j << " = " << binPackingSolver.getValue(Lambda[j]) << endl;
+   
+   cout << endl;
+   for (int i = 0; i < Fill.getSize(); i++)
+      cout << "  Fill" << i << " = " << binPackingSolver.getDual(Fill[i]) << endl;
+   
+   cout << endl;
+}
+
+static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use,
+                    IloObjective obj)
+{
+   cout << endl;
+   cout << "Reduced cost is " << patSolver.getValue(obj) << endl;
+   cout << endl;
+   if (patSolver.getValue(obj) <= 0)
+   {
+      for (IloInt i = 0; i < Use.getSize(); i++)
+      
+         cout << "  Use" << i << " = " << patSolver.getValue(Use[i]) << endl;
+      
+      cout << endl;
+   }
+}
+
+static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda)
+{
+   cout << endl;
+   cout << "Best integer solution uses "
+        << binPackingSolver.getObjValue() << " bins" << endl;
+   cout << endl;
+   // for (IloInt j = 0; j < Lambda.getSize(); j++)
+   // {
+   //    cout << "  Lambda" << j << " = " << binPackingSolver.getValue(Lambda[j]) << endl;
+   // }
+}
