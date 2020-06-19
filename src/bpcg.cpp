@@ -1,5 +1,8 @@
+#include "minknap.h"
+
 #include <ilcplex/ilocplex.h>
-#include <stdexcept> // std::invalid_argument
+
+#include <stdexcept>
 #include <iostream>
 #include <fstream>
 using namespace std;
