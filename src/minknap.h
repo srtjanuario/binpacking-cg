@@ -96,7 +96,7 @@
 #define WMIN 1                 /* weight of worlds least efficient item */
 
 #define DET(a1, a2, b1, b2)    ((a1) * (ptype) (b2) - (a2) * (ptype) (b1))
-#define SWAP(a, b)   { register item t; t = *(a); *(a) = *(b); *(b) = t; }
+#define SWAP(a, b)   { item t; t = *(a); *(a) = *(b); *(b) = t; }
 #define DIFF(a,b)              ((int) ((b)-(a)+1))
 #define NO(a,p)                ((int) ((p) - (a)->fitem + 1))
 #define N(a,p)                 ((int) ((p) - (a)->d.set1))
