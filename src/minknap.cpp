@@ -572,10 +572,11 @@ void initvect(allinfo *a)
 				  copyproblem
    ====================================================================== */
 
-void copyproblem(item *f, item *l, int *p, int *w, int *x)
+void copyproblem(item *f, item *l, double *p, double *w, int *x)
 {
   item *i, *m;
-  int *pp, *ww, *xx;
+  double *pp, *ww; 
+  int *xx;
 
   for (i = f, m = l+1, pp = p, ww = w, xx = x; i != m; i++, pp++, ww++, xx++) {
     i->p = *pp; i->w = *ww; i->x = xx; 
@@ -623,7 +624,7 @@ void findbreak(allinfo *a)
 				minknap
    ====================================================================== */
 
-stype minknap(int n, int *p, int *w, int *x, int c)
+stype minknap(int n, double *p, double *w, int *x, int c)
 {
   allinfo a;
   item *tab;
