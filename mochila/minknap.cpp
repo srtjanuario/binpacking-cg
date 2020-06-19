@@ -71,6 +71,7 @@
 
 #define MAXSTATES 400000 
 
+#include "minknap.h"
 #include <cmath>
 #include <iostream>
 // #include <malloc.h>
@@ -206,7 +207,7 @@ void errorx(char *str, ...)
   va_start(args, str);
   vprintf(str, args); printf("\n");
   va_end(args);
-  printf("Program is terminated !!!\n\n");
+  cout<<"Program is terminated !!!\n\n";
   exit(-1);
 }
 
@@ -809,11 +810,11 @@ stype minknap(int n, int *p, int *w, int *x, int c)
 				end
    ====================================================================== */
 
-int main(){
+int main(int argc, char* argv[]){
   int n = 4;
   int p[4] = {9,11,13,15};
   int w[4] = {6,5,9,7};
-  int x[4];// = {0,0,0,0};
+  int x[4];
   int c = 20;
   printf("%ld\n",minknap(n, p, w, x, c));
   int res = 0;
