@@ -34,3 +34,4 @@
 tsp
 *.lp
 bpcg
+src/config.code-workspace
