@@ -1,9 +1,10 @@
 
 /* ======================================================================
            MINKNAP.C, David Pisinger   march 1993, revised feb. 1998
+           Converted to C++ by https://github.com/januarioccp
    ====================================================================== */
 
-/* This is the C-code corresponding to the paper:
+/* This is the C++ code corresponding to the paper:
  *
  *   D. Pisinger
  *   A minimal algorithm for the 0-1 knapsack problem
@@ -57,6 +58,10 @@
  *   DK-2100 Copenhagen.
  *   e-mail: pisinger@diku.dk
  *   fax: +45 35 32 14 01
+ * 
+ *  OR
+ * 
+ *  https://github.com/januarioccp
  */
 
 
@@ -66,13 +71,8 @@
 
 #define MAXSTATES 400000 
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <stdarg.h>
-#include <limits.h>
-#include <string.h>
-#include <math.h>
+#include <cmath>
+#include <iostream>
 // #include <malloc.h>
 
 
@@ -220,19 +220,6 @@ void pfree(void *p)
   if (p == NULL) printf("freeing null");
   free(p);
 }
-
-
-void *palloc(long size)
-{
-  char *p;
-
-  if (size == 0) size = 1;
-  if (size != (size_t) size) printf("Alloc too big %ld", size);
-  p = malloc(size);
-  if (p == NULL) printf("no memory size %ld", size);
-  return p;
-}
-
 
 /* ======================================================================
 				  findvect
@@ -676,7 +663,7 @@ void initfirst(allinfo *a, stype ps, stype ws)
   register state *k;
 
   a->d.size  = 1;
-  a->d.set1  = palloc(MAXSTATES * sizeof(state));
+  a->d.set1  = new state[MAXSTATES];
   a->d.setm  = a->d.set1 + MAXSTATES - 1;
   a->d.fset  = a->d.set1;
   a->d.lset  = a->d.set1;
@@ -762,7 +749,8 @@ stype minknap(int n, int *p, int *w, int *x, int c)
   interval *inttab;
 
   /* allocate space for internal representation */
-  tab = (item *) palloc(sizeof(item) * n);
+  // tab = (item *) palloc(sizeof(item) * n);
+  tab = new item[n];
   a.fitem = &tab[0]; a.litem = &tab[n-1];
   copyproblem(a.fitem, a.litem, p, w, x);
   a.n           = n;
@@ -775,7 +763,7 @@ stype minknap(int n, int *p, int *w, int *x, int c)
   a.maxstates   = 0;
   a.coresize    = 0;
 
-  inttab  = palloc(sizeof(interval) * SORTSTACK);
+  inttab  = new interval[SORTSTACK];
   a.intv1 = a.intv1b = &inttab[0];
   a.intv2 = a.intv2b = &inttab[SORTSTACK - 1];
   a.fsort = a.litem; a.lsort = a.fitem;
