@@ -109,7 +109,7 @@ void pfree(void *p)
 state *findvect(stype ws, state *f, state *l)
 {
   /* find vector i, so that i->wsum <= ws < (i+1)->wsum */
-  register state *m;
+  state *m;
 
   /* a set should always have at least one vector */
   if (f > l) printf("findvect: empty set");
@@ -175,9 +175,9 @@ void improvesolution(allinfo *a, state *v)
 
 void definesolution(allinfo *a)
 {
-  register item *f, *l, *i;
-  register stype psum, wsum;
-  register btype j, k;
+  item *f, *l, *i;
+  stype psum, wsum;
+  btype j, k;
 
   if (a->firsttime) {
     a->zstar = a->z;
@@ -225,9 +225,9 @@ item *median(item *f1, item *l1, ntype s)
 {
   /* Find median r of items [f1, f1+s, f1+2s, ... l1], */
   /* and ensure the ordering f1 >= r >= l1.            */
-  register ptype mp, mw;
-  register item *i, *j;
-  register item *f, *l, *k, *m, *q;
+  ptype mp, mw;
+  item *i, *j;
+  item *f, *l, *k, *m, *q;
   ntype n, d;
   static item r;
 
@@ -274,10 +274,10 @@ item *median(item *f1, item *l1, ntype s)
 
 void partsort(allinfo *a, item *f, item *l, stype ws, int what)
 {
-  register ptype mp, mw;
-  register item *i, *j, *m;
-  register stype wi;
-  register int d;
+   ptype mp, mw;
+   item *i, *j, *m;
+   stype wi;
+   int d;
 
   d = l - f + 1;
   if (d < 1) printf("negative interval in partsort");
@@ -328,8 +328,8 @@ void partsort(allinfo *a, item *f, item *l, stype ws, int what)
 
 boolean haschance(allinfo *a, item *i, int side)
 {
-  register state *j, *m;
-  register ptype p, w, r;
+  state *j, *m;
+  ptype p, w, r;
   stype pp, ww;
 
   if (a->d.size == 0) return FALSE;
@@ -362,9 +362,9 @@ boolean haschance(allinfo *a, item *i, int side)
 
 void multiply(allinfo *a, item *h, int side)
 {
-  register state *i, *j, *k, *m;
-  register itype p, w;
-  register btype mask0, mask1;
+  state *i, *j, *k, *m;
+  itype p, w;
+  btype mask0, mask1;
   state *r1, *rm;
 
   if (a->d.size == 0) return;
@@ -416,10 +416,10 @@ void multiply(allinfo *a, item *h, int side)
 
 void simpreduce(int side, item **f, item **l, allinfo *a)
 {
-  register item *i, *j, *k;
-  register ptype pb, wb;
-  register ptype q, r;
-  register int redu;
+  item *i, *j, *k;
+  ptype pb, wb;
+  ptype q, r;
+  int redu;
 
   if (a->d.size == 0) { *f = *l+1; return; }
   if (*l < *f) return;
@@ -460,8 +460,8 @@ void simpreduce(int side, item **f, item **l, allinfo *a)
 
 void reduceset(allinfo *a)
 {
-  register state *i, *m, *k;
-  register ptype ps, ws, pt, wt, r;
+  state *i, *m, *k;
+  ptype ps, ws, pt, wt, r;
   stype z, c;
   state *r1, *rm, *v;
   item *f, *l;
@@ -541,7 +541,7 @@ void reduceset(allinfo *a)
 
 void initfirst(allinfo *a, stype ps, stype ws)
 {
-  register state *k;
+  state *k;
 
   a->d.size  = 1;
   a->d.set1  = new state[MAXSTATES];
@@ -562,7 +562,7 @@ void initfirst(allinfo *a, stype ps, stype ws)
 
 void initvect(allinfo *a)
 {
-  register btype i;
+  btype i;
   for (i = 0; i < MAXV; i++) a->vitem[i] = NULL;
   a->vno = MAXV-1;
 }
@@ -574,8 +574,8 @@ void initvect(allinfo *a)
 
 void copyproblem(item *f, item *l, int *p, int *w, int *x)
 {
-  register item *i, *m;
-  register int *pp, *ww, *xx;
+  item *i, *m;
+  int *pp, *ww, *xx;
 
   for (i = f, m = l+1, pp = p, ww = w, xx = x; i != m; i++, pp++, ww++, xx++) {
     i->p = *pp; i->w = *ww; i->x = xx; 
@@ -589,8 +589,8 @@ void copyproblem(item *f, item *l, int *p, int *w, int *x)
 
 void findbreak(allinfo *a)
 {
-  register item *i, *m;
-  register stype psum, wsum, c, r;
+  item *i, *m;
+  stype psum, wsum, c, r;
 
   psum = 0; wsum = 0; c = a->cstar;
   for (i = a->fitem; wsum <= c; i++) { 
@@ -690,19 +690,19 @@ stype minknap(int n, int *p, int *w, int *x, int c)
 				end
    ====================================================================== */
 
-// int main(int argc, char* argv[]){
-//   int n = 4;
-//   int p[4] = {9,11,13,15};
-//   int w[4] = {6,5,9,7};
-//   int x[4];
-//   int c = 20;
-//   printf("%lf\n",minknap(n, p, w, x, c));
-//   double res = 0;
-//   for(int i = 0; i < n; i++){
-//     if(x[i])
-//       res +=p[i];
-//     printf("%d %d %d\n",i,x[i],p[i]);
-//   }
-//   printf("%f\n",res);
-//   return 0; 
-// }
+int main(int argc, char* argv[]){
+  int n = 4;
+  int p[4] = {9,11,13,15};
+  int w[4] = {6,5,9,7};
+  int x[4];
+  int c = 20;
+  printf("%lf\n",minknap(n, p, w, x, c));
+  double res = 0;
+  for(int i = 0; i < n; i++){
+    if(x[i])
+      res +=p[i];
+    printf("%d %d %d\n",i,x[i],p[i]);
+  }
+  printf("%f\n",res);
+  return 0; 
+}
