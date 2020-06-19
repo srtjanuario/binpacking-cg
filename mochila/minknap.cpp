@@ -74,127 +74,7 @@
 #include "minknap.h"
 #include <cmath>
 #include <iostream>
-// #include <malloc.h>
-
-
-/* ======================================================================
-				   macros
-   ====================================================================== */
-
-#define SYNC            5      /* when to switch to linear scan in bins */
-#define SORTSTACK     200      /* depth of stack used in qsort */
-#define MINMED        100      /* find exact median in qsort if larger size */
-
-#define TRUE  1
-#define FALSE 0
-
-#define LEFT  1
-#define RIGHT 2
-
-#define PARTIATE 1
-#define SORTALL  2
-
-#define MAXV (8*sizeof(btype)) /* number of bits in a long integer */
-#define PMAX 1                 /* profit of worlds most efficient item  */
-#define WMAX 0                 /* weight of worlds most efficient item  */
-#define PMIN 0                 /* profit of worlds least efficient item */
-#define WMIN 1                 /* weight of worlds least efficient item */
-
-#define DET(a1, a2, b1, b2)    ((a1) * (ptype) (b2) - (a2) * (ptype) (b1))
-#define SWAP(a, b)   { register item t; t = *(a); *(a) = *(b); *(b) = t; }
-#define DIFF(a,b)              ((int) ((b)-(a)+1))
-#define NO(a,p)                ((int) ((p) - (a)->fitem + 1))
-#define N(a,p)                 ((int) ((p) - (a)->d.set1))
-#define L(x)                   ((long) (x))
-#define SZ(a)                  (*(((int *) (a)) - 4) - 1)
-
-
-/* ======================================================================
-				 type declarations
-   ====================================================================== */
-
-typedef int           boolean;
-typedef long          ntype;   /* number of states/items   */
-typedef long          itype;   /* item profits and weights */
-typedef long          stype;   /* sum of pofit or weight   */
-typedef double        ptype;   /* product type (sufficient precision) */
-typedef unsigned long btype;   /* binary representation of solution */
-
-/* item record */
-typedef struct irec {
-  itype   p;     /* profit */
-  itype   w;     /* weight */
-  boolean *x;    /* solution variable */
-} item;
-
-typedef struct { /* i-stack */
-  item  *f;      /* first item in interval */
-  item  *l;      /* last item in interval */
-} interval;
-
-/* state in dynamic programming */
-typedef struct pv {
-  stype psum;    /* profit sum */
-  stype wsum;    /* weight sum */
-  btype vect;    /* solution vector */
-} state;
-
-/* set of states */
-typedef struct pset {
-  ntype size;    /* set size */
-  state *fset;   /* first element in set */
-  state *lset;   /* last element in set */
-  state *set1;   /* first element in array */
-  state *setm;   /* last element in array */
-} stateset;
-
-typedef struct { /* all problem information */
-  ntype    n;               /* number of items         */
-  item     *fitem;          /* first item in problem   */
-  item     *litem;          /* last item in problem    */
-  item     *ftouch;         /* first item considered for reduction */
-  item     *ltouch;         /* last item considered for reduction */
-  item     *s;              /* current core is [s,t]   */
-  item     *t;              /*                         */
-  item     *b;              /* break item              */
-  item     *fpart;          /* first item returned by partial sort */
-  item     *lpart;          /* last item returned by partial sort */
-  stype    wfpart;          /* weight sum up to fpart  */
-  item     *fsort;          /* first sorted item       */
-  item     *lsort;          /* last sorted item        */
-  stype    wfsort;          /* weight sum up to fsort  */
-  stype    c;               /* current capacity        */
-  stype    cstar;           /* origianl capacity       */
-  stype    z;               /* current solution        */
-  stype    zstar;           /* optimal solution        */
-  stype    zwsum;           /* weight sum of zstar     */
-  itype    ps, ws, pt, wt;  /* items for deriving bounds */
-
-  btype    vno;             /* current vector number   */
-  item *   vitem[MAXV];     /* current last MAXV items */
-  item *   ovitem[MAXV];    /* optimal set of items    */
-  btype    ovect;           /* optimal solution vector */
-
-  stype    dantzig;         /* dantzig upper bound     */
-  stype    ub;              /* global upper bound      */
-  stype    psumb;           /* profit sum up to b      */
-  stype    wsumb;           /* weight sum up to b      */
-  boolean  firsttime;       /* used for restoring x    */
-  boolean  welldef;         /* is x welldefined        */
-  stateset  d;              /* set of partial vectors  */
-  interval *intv1, *intv2;
-  interval *intv1b, *intv2b;
-
-  /* debug */
-  long     iterates;        /* counters used to obtain specific */
-  long     simpreduced;     /* information about the solution process */
-  long     pireduced;
-  long     pitested;
-  long     maxstates;
-  long     coresize;
-  long     bzcore;
-} allinfo;
-
+using namespace std;
 
 /* ======================================================================
 				  errorx
@@ -501,8 +381,8 @@ void multiply(allinfo *a, item *h, int side)
   /* initialize limits */
   r1 = a->d.fset; rm = a->d.lset; k = a->d.set1; m = rm + 1;
   k->psum = -1;
-  k->wsum = r1->wsum + labs(p) + 1;
-  m->wsum = rm->wsum + labs(w) + 1;
+  k->wsum = r1->wsum + abs(p) + 1;
+  m->wsum = rm->wsum + abs(w) + 1;
 
   for (i = r1, j = r1; (i != m) || (j != m); ) {
     if (i->wsum <= j->wsum + w) {
@@ -816,13 +696,13 @@ int main(int argc, char* argv[]){
   int w[4] = {6,5,9,7};
   int x[4];
   int c = 20;
-  printf("%ld\n",minknap(n, p, w, x, c));
-  int res = 0;
+  printf("%lf\n",minknap(n, p, w, x, c));
+  double res = 0;
   for(int i = 0; i < n; i++){
     if(x[i])
       res +=p[i];
     printf("%d %d %d\n",i,x[i],p[i]);
   }
-  printf("%d\n",res);
+  printf("%f\n",res);
   return 0; 
 }
