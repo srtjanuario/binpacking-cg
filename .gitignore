@@ -35,3 +35,4 @@ tsp
 *.lp
 bpcg
 src/config.code-workspace
+.vscode/settings.json
