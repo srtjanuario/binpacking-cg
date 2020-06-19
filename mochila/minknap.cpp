@@ -690,19 +690,19 @@ stype minknap(int n, int *p, int *w, int *x, int c)
 				end
    ====================================================================== */
 
-int main(int argc, char* argv[]){
-  int n = 4;
-  int p[4] = {9,11,13,15};
-  int w[4] = {6,5,9,7};
-  int x[4];
-  int c = 20;
-  printf("%lf\n",minknap(n, p, w, x, c));
-  double res = 0;
-  for(int i = 0; i < n; i++){
-    if(x[i])
-      res +=p[i];
-    printf("%d %d %d\n",i,x[i],p[i]);
-  }
-  printf("%f\n",res);
-  return 0; 
-}
+// int main(int argc, char* argv[]){
+//   int n = 4;
+//   int p[4] = {9,11,13,15};
+//   int w[4] = {6,5,9,7};
+//   int x[4];
+//   int c = 20;
+//   printf("%lf\n",minknap(n, p, w, x, c));
+//   double res = 0;
+//   for(int i = 0; i < n; i++){
+//     if(x[i])
+//       res +=p[i];
+//     printf("%d %d %d\n",i,x[i],p[i]);
+//   }
+//   printf("%f\n",res);
+//   return 0; 
+// }
