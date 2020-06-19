@@ -43,6 +43,13 @@ int main(int argc, char **argv)
 
       IloInt nItens = itemWeight.getSize();
       
+      int *x = new int[nItens];
+      double *p = new double[nItens];
+      double *w = new double[nItens];
+
+      for (int i = 0; i < nItens; i++)
+         w[i] = itemWeight[i];
+
       /**
        * Declare:
        * - array of variables
@@ -91,22 +98,28 @@ int main(int argc, char **argv)
       IloNumArray price(env, nItens);
       IloNumArray newPatt(env, nItens);
 
+      int k = 2;
       while (true)
       {
          /// OPTIMIZE OVER CURRENT PATTERNS ///
 
          binPackingSolver.solve();
-         masterDebug (binPackingSolver, Lambda, Fill);
+         // masterDebug (binPackingSolver, Lambda, Fill);
 
-         /// FIND AND ADD A NEW PATTERN ///
+         /// FIND AND ADD A NEW PATTERN ///      
 
-         for (int i = 0; i < nItens; i++)
+         for (int i = 0; i < nItens; i++){
             price[i] = -binPackingSolver.getDual(Fill[i]);
-         
-         ReducedCost.setLinearCoefs(Use, price);
+            p[i] = -price[i];
+         }
 
+         ReducedCost.setLinearCoefs(Use, price);
          patSolver.solve();
+         cout << "Knapsack cost:  " <<fixed<<1.0-minknap(nItens, p, w, x, binCapacity)<<endl;
          subDebug (patSolver, Use, ReducedCost);
+
+         // if(!k--)
+         //    return 0;
 
          if (patSolver.getValue(ReducedCost) > -EPSILON){
             break;
@@ -121,6 +134,9 @@ int main(int argc, char **argv)
       binPackingSolver.solve();
       cout << "Solution status: " << binPackingSolver.getStatus() << endl;
       resultDebug(binPackingSolver, Lambda);
+
+      delete [] x;
+      delete [] p;
    }
    catch (IloException &ex)
    {
@@ -136,7 +152,6 @@ int main(int argc, char **argv)
    }
 
    env.end();
-
    return 0;
 }
 
@@ -182,17 +197,17 @@ static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda,
 static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use,
                     IloObjective obj)
 {
-   cout << endl;
+   // cout << endl;
    cout << "Reduced cost is " << patSolver.getValue(obj) << endl;
    cout << endl;
-   if (patSolver.getValue(obj) <= 0)
-   {
-      for (IloInt i = 0; i < Use.getSize(); i++)
+   // if (patSolver.getValue(obj) <= 0)
+   // {
+   //    for (IloInt i = 0; i < Use.getSize(); i++)
       
-         cout << "  Use" << i << " = " << patSolver.getValue(Use[i]) << endl;
+   //       cout << "  Use" << i << " = " << patSolver.getValue(Use[i]) << endl;
       
-      cout << endl;
-   }
+   //    cout << endl;
+   // }
 }
 
 static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda)
