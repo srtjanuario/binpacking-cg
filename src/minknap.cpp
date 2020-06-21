@@ -1,76 +1,3 @@
-
-/* ======================================================================
-           MINKNAP.C, David Pisinger   march 1993, revised feb. 1998
-           Converted to C++ by https://github.com/januarioccp
-   ====================================================================== */
-
-/* This is the C++ code corresponding to the paper:
- *
- *   D. Pisinger
- *   A minimal algorithm for the 0-1 knapsack problem
- *   Operations Research, 45, 758-767 (1997).
- *
- * Further details on the project can also be found in
- *
- *   D. Pisinger
- *   Algorithms for Knapsack Problems
- *   Report 95/1, DIKU, University of Copenhagen
- *   Universitetsparken 1
- *   DK-2100 Copenhagen
- *
- * The algorithm may be used for academic, non-commercial purposes 
- * only.
- * -------------------------------------------------------------------
- * The present code is a callable routine which solves a 0-1 Knapsack
- * Problem:
- *
- *           maximize   \sum_{j=1}^{n} p_{j} x_{j}
- *           subject to \sum_{j=1}^{n} w_{j} x_{j} \leq c
- *                      x_{j} \in \{0,1\}, j = 1,\ldots,n
- *
- * The minknap algorithm is called as
- *
- *          z = minknap(n, p, w, x, c)
- * 
- * where p[], w[], x[] are arrays of integers. The optimal objective
- * value is returned in z, and x[] gives the solution vector.
- * If you need a different interface for your algorithm, minknap
- * may easily be adapted to your own datastructures since all tables
- * are copied to the internal representation. 
- *
- * Since the minknap algorithm is based on dynamic programming, you
- * must give an upper limit MAXSTATES on the number of states. The 
- * constant is defined below. Different types should be defined as
- * follows:
- * 
- *    itype     should be sufficiently large to hold a profit or weight
- *    stype     should be sufficient to hold sum of profits/weights
- *    ptype     should hold the product of an stype and itype
- * 
- * The code has been tested on a hp9000/735, and conforms with the
- * ANSI-C standard. 
- * 
- * Errors and questions are refered to:
- *
- *   David Pisinger, associate professor
- *   DIKU, University of Copenhagen,
- *   Universitetsparken 1,
- *   DK-2100 Copenhagen.
- *   e-mail: pisinger@diku.dk
- *   fax: +45 35 32 14 01
- * 
- *  OR
- * 
- *  https://github.com/januarioccp
- */
-
-
-/* ======================================================================
-                                  definitions
-   ====================================================================== */
-
-#define MAXSTATES 400000 
-
 #include "minknap.h"
 #include <cmath>
 #include <iostream>
@@ -80,14 +7,14 @@ using namespace std;
 				  errorx
    ====================================================================== */
 
-void errorx(char *str, ...)
+void errorx(string str,...)
 {
   va_list args;
 
   va_start(args, str);
-  vprintf(str, args); printf("\n");
+  vprintf(str.c_str(), args); printf("\n");
   va_end(args);
-  cout<<"Program is terminated !!!\n\n";
+  printf("Program is terminated !!!\n\n");
   exit(-1);
 }
 
@@ -98,9 +25,22 @@ void errorx(char *str, ...)
 
 void pfree(void *p)
 {
-  if (p == NULL) printf("freeing null");
+  if (p == NULL) errorx("freeing null");
   free(p);
 }
+
+
+void *palloc(long size)
+{
+  char *p;
+
+  if (size == 0) size = 1;
+  if (size != (size_t) size) errorx("Alloc too big %ld", size);
+  p = new char[size];
+  if (p == NULL) errorx("no memory size %ld", size);
+  return p;
+}
+
 
 /* ======================================================================
 				  findvect
@@ -112,7 +52,7 @@ state *findvect(stype ws, state *f, state *l)
   state *m;
 
   /* a set should always have at least one vector */
-  if (f > l) printf("findvect: empty set");
+  if (f > l) errorx("findvect: empty set");
   if (f->wsum >  ws) return NULL;
   if (l->wsum <= ws) return l;
 
@@ -136,7 +76,7 @@ void push(allinfo *a, int side, item *f, item *l)
     case LEFT : pos = a->intv1; (a->intv1)++; break;
     case RIGHT: pos = a->intv2; (a->intv2)--; break;
   }
-  if (a->intv1 == a->intv2) printf("interval stack full");
+  if (a->intv1 == a->intv2) errorx("interval stack full");
   pos->f = f; pos->l = l;
 }
 
@@ -144,9 +84,9 @@ void pop(allinfo *a, int side, item **f, item **l)
 {
   interval *pos;
   switch (side) {
-    case LEFT : if (a->intv1 == a->intv1b) printf("pop left");
+    case LEFT : if (a->intv1 == a->intv1b) errorx("pop left");
 		(a->intv1)--; pos = a->intv1; break;
-    case RIGHT: if (a->intv2 == a->intv2b) printf("pop right");
+    case RIGHT: if (a->intv2 == a->intv2b) errorx("pop right");
 		(a->intv2)++; pos = a->intv2; break;
   }
   *f = pos->f; *l = pos->l;
@@ -159,8 +99,8 @@ void pop(allinfo *a, int side, item **f, item **l)
 
 void improvesolution(allinfo *a, state *v)
 {
-  if (v->wsum  > a->c) printf("wrong improvesoluton");
-  if (v->psum <= a->z) printf("not improved solution");
+  if (v->wsum  > a->c) errorx("wrong improvesoluton");
+  if (v->psum <= a->z) errorx("not improved solution");
 
   a->z      = v->psum;
   a->zwsum  = v->wsum;
@@ -274,13 +214,13 @@ item *median(item *f1, item *l1, ntype s)
 
 void partsort(allinfo *a, item *f, item *l, stype ws, int what)
 {
-   ptype mp, mw;
-   item *i, *j, *m;
-   stype wi;
-   int d;
+  ptype mp, mw;
+  item *i, *j, *m;
+  stype wi;
+  int d;
 
   d = l - f + 1;
-  if (d < 1) printf("negative interval in partsort");
+  if (d < 1) errorx("negative interval in partsort");
   if (d > MINMED) {
     m = median(f, l, (int) sqrt(d));
   } else {
@@ -369,7 +309,7 @@ void multiply(allinfo *a, item *h, int side)
 
   if (a->d.size == 0) return;
   if (side == RIGHT) { p = h->p; w = h->w; } else { p = -h->p; w = -h->w; }
-  if (2*a->d.size + 2 > MAXSTATES) printf("no space in multiply");
+  if (2*a->d.size + 2 > MAXSTATES) errorx("no space in multiply");
 
   /* keep track on solution vector */
   a->vno++;
@@ -572,11 +512,10 @@ void initvect(allinfo *a)
 				  copyproblem
    ====================================================================== */
 
-void copyproblem(item *f, item *l, double *p, double *w, int *x)
+void copyproblem(item *f, item *l, int *p, int *w, int *x)
 {
   item *i, *m;
-  double *pp, *ww; 
-  int *xx;
+  int *pp, *ww, *xx;
 
   for (i = f, m = l+1, pp = p, ww = w, xx = x; i != m; i++, pp++, ww++, xx++) {
     i->p = *pp; i->w = *ww; i->x = xx; 
@@ -624,15 +563,14 @@ void findbreak(allinfo *a)
 				minknap
    ====================================================================== */
 
-stype minknap(int n, double *p, double *w, int *x, int c)
+stype minknap(int n, int *p, int *w, int *x, int c)
 {
   allinfo a;
   item *tab;
   interval *inttab;
 
   /* allocate space for internal representation */
-  // tab = (item *) palloc(sizeof(item) * n);
-  tab = new item[n];
+  tab = (item *) palloc(sizeof(item) * n);
   a.fitem = &tab[0]; a.litem = &tab[n-1];
   copyproblem(a.fitem, a.litem, p, w, x);
   a.n           = n;
@@ -697,7 +635,7 @@ stype minknap(int n, double *p, double *w, int *x, int c)
 //   int w[4] = {6,5,9,7};
 //   int x[4];
 //   int c = 20;
-//   printf("%lf\n",minknap(n, p, w, x, c));
+//   printf("%ld\n",minknap(n, p, w, x, c));
 //   double res = 0;
 //   for(int i = 0; i < n; i++){
 //     if(x[i])
