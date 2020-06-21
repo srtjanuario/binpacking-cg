@@ -10,7 +10,7 @@ using namespace std;
 #define EPSILON 1e-6
 
 // Read data from filename
-static void readData(const char *filename, IloNum &binCapacity,IloNumArray &itemWeight);
+static void readData(const char *filename, IloNum &binCapacity, IloNumArray &itemWeight);
 static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda, IloRangeArray Fill);
 static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use, IloObjective obj);
 static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda);
@@ -42,10 +42,10 @@ int main(int argc, char **argv)
          throw invalid_argument("Plese, give me an input file");
 
       IloInt nItens = itemWeight.getSize();
-      
+
       int *x = new int[nItens];
-      double *p = new double[nItens];
-      double *w = new double[nItens];
+      int *p = new int[nItens];
+      int *w = new int[nItens];
 
       for (int i = 0; i < nItens; i++)
          w[i] = itemWeight[i];
@@ -57,16 +57,16 @@ int main(int argc, char **argv)
        * - an objective function
        * - a model for the master problem
        * */
-      IloNumVarArray Lambda(env,nItens,0,IloInfinity);
+      IloNumVarArray Lambda(env, nItens, 0, IloInfinity);
       IloRangeArray Fill(env);
-      
+
       IloModel masterBinPacking(env);
 
       /**
        * Define variables
        * */
       for (int i = 0; i < nItens; i++)
-        Lambda[i].setName(("L_"+to_string(i)).c_str());
+         Lambda[i].setName(("L_" + to_string(i)).c_str());
 
       /**
        * Define range
@@ -74,11 +74,11 @@ int main(int argc, char **argv)
       for (int i = 0; i < nItens; i++)
          Fill.add(Lambda[i] == 1); // ? ? ?
       masterBinPacking.add(Fill);
-        
+
       /**
        * Define objective function
        * */
-      IloObjective binsUsed = IloAdd(masterBinPacking, IloMinimize(env,IloSum(Lambda)));
+      IloObjective binsUsed = IloAdd(masterBinPacking, IloMinimize(env, IloSum(Lambda)));
 
       IloCplex binPackingSolver(masterBinPacking);
       binPackingSolver.setOut(env.getNullStream());
@@ -106,37 +106,48 @@ int main(int argc, char **argv)
          binPackingSolver.solve();
          // masterDebug (binPackingSolver, Lambda, Fill);
 
-         /// FIND AND ADD A NEW PATTERN ///      
+         /// FIND AND ADD A NEW PATTERN ///
+#ifndef MOCHILA_MODEL
+         double factor = 1000000;
+         for (int i = 0; i < nItens; i++)
+            p[i] = (binPackingSolver.getDual(Fill[i]) > 0) ? factor * binPackingSolver.getDual(Fill[i]) : 0;
+         
+         double rc = 1.0 - minknap(nItens, p, w, x, binCapacity) / factor;
+         // cout << "Knapsack cost:  " << fixed << rc << endl;
 
-         for (int i = 0; i < nItens; i++){
-            price[i] = -binPackingSolver.getDual(Fill[i]);
-            p[i] = -price[i];
-         }
-
-         ReducedCost.setLinearCoefs(Use, price);
-         patSolver.solve();
-         cout << "Knapsack cost:  " <<fixed<<1.0-minknap(nItens, p, w, x, binCapacity)<<endl;
-         subDebug (patSolver, Use, ReducedCost);
-
-         // if(!k--)
-         //    return 0;
-
-         if (patSolver.getValue(ReducedCost) > -EPSILON){
+         if (rc > -EPSILON)
+         {
             break;
          }
+         for (int i = 0; i < nItens; i++)
+            newPatt[i] = x[i];
+#else
+         for (int i = 0; i < nItens; i++)
+            price[i] = -binPackingSolver.getDual(Fill[i]);
 
+         ReducedCost.setLinearCoefs(Use, price);
+
+         patSolver.solve();
+         subDebug (patSolver, Use, ReducedCost);
+
+         if (patSolver.getValue(ReducedCost) > -EPSILON)
+         {
+            break;
+         }
          patSolver.getValues(newPatt, Use);
+#endif
          Lambda.add(IloNumVar(binsUsed(1) + Fill(newPatt)));
       }
 
       masterBinPacking.add(IloConversion(env, Lambda, ILOINT));
 
       binPackingSolver.solve();
+      binPackingSolver.setOut(cout);
       cout << "Solution status: " << binPackingSolver.getStatus() << endl;
       resultDebug(binPackingSolver, Lambda);
 
-      delete [] x;
-      delete [] p;
+      delete[] x;
+      delete[] p;
    }
    catch (IloException &ex)
    {
@@ -179,23 +190,23 @@ static void readData(const char *filename, IloNum &binCapacity,
 }
 
 static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda,
-                    IloRangeArray Fill)
+                        IloRangeArray Fill)
 {
    cout << endl;
    cout << "Using " << binPackingSolver.getObjValue() << " bins" << endl;
    cout << endl;
    for (int64_t j = 0; j < Lambda.getSize(); j++)
       cout << "  Lambda" << j << " = " << binPackingSolver.getValue(Lambda[j]) << endl;
-   
+
    cout << endl;
    for (int i = 0; i < Fill.getSize(); i++)
       cout << "  Fill" << i << " = " << binPackingSolver.getDual(Fill[i]) << endl;
-   
+
    cout << endl;
 }
 
 static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use,
-                    IloObjective obj)
+                     IloObjective obj)
 {
    // cout << endl;
    cout << "Reduced cost is " << patSolver.getValue(obj) << endl;
@@ -203,9 +214,9 @@ static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use,
    // if (patSolver.getValue(obj) <= 0)
    // {
    //    for (IloInt i = 0; i < Use.getSize(); i++)
-      
+
    //       cout << "  Use" << i << " = " << patSolver.getValue(Use[i]) << endl;
-      
+
    //    cout << endl;
    // }
 }
