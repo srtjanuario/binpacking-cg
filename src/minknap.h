@@ -1,5 +1,8 @@
 #ifndef MINKNAP_BY_DAVID_PISINGER
 #define MINKNAP_BY_DAVID_PISINGER
+#include <string>
+using namespace std;
+
 /* ======================================================================
            MINKNAP.C, David Pisinger   march 1993, revised feb. 1998
            Converted to C++ by https://github.com/januarioccp
@@ -110,9 +113,9 @@
 
 typedef int           boolean;
 typedef long          ntype;   /* number of states/items   */
-typedef double        itype;   /* item profits and weights */
-typedef double        stype;   /* sum of pofit or weight   */
-typedef double        ptype;   /* product type (sufficient precision) */
+typedef long        itype;   /* item profits and weights */
+typedef long        stype;   /* sum of pofit or weight   */
+typedef long double        ptype;   /* product type (sufficient precision) */
 typedef unsigned long btype;   /* binary representation of solution */
 
 /* item record */
@@ -195,7 +198,7 @@ typedef struct { /* all problem information */
 				  errorx
    ====================================================================== */
 
-void errorx(char *str, ...);
+void errorx(string str,...);
 
 
 /* ======================================================================
@@ -307,7 +310,7 @@ void findbreak(allinfo *a);
 				minknap
    ====================================================================== */
 
-stype minknap(int n, double *p, double *w, int *x, int c);
+stype minknap(int n, int *p, int *w, int *x, int c);
 
 /* ======================================================================
 				end
