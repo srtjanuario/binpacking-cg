@@ -43,13 +43,13 @@ int main(int argc, char **argv)
       else
          throw invalid_argument("Plese, give me an input file");
 
-      IloInt nItens = itemWeight.getSize();
+      IloInt nItems = itemWeight.getSize();
 
-      int *x = new int[nItens];
-      int *p = new int[nItens];
-      int *w = new int[nItens];
+      int *x = new int[nItems];
+      int *p = new int[nItems];
+      int *w = new int[nItems];
 
-      for (int i = 0; i < nItens; i++)
+      for (int i = 0; i < nItems; i++)
          w[i] = itemWeight[i];
 
       /**
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
        * - an objective function
        * - a model for the master problem
        * */
-      IloNumVarArray Lambda(env, nItens, 0, IloInfinity);
+      IloNumVarArray Lambda(env, nItems, 0, IloInfinity);
       IloRangeArray Fill(env);
 
       IloModel masterBinPacking(env);
@@ -67,20 +67,20 @@ int main(int argc, char **argv)
       /**
        * Define variables
        * */
-      for (int i = 0; i < nItens; i++)
+      for (int i = 0; i < nItems; i++)
          Lambda[i].setName(("L_" + to_string(i)).c_str());
 
       /**
        * Define range
        * */
-      for (int i = 0; i < nItens; i++)
+      for (int i = 0; i < nItems; i++)
          Fill.add(Lambda[i] == 1);
       masterBinPacking.add(Fill);
 
       // One item in each bin
-      bin = vector<vector<bool>>(nItens, vector<bool>(nItens, false));
+      bin = vector<vector<bool>>(nItems, vector<bool>(nItems, false));
       // Item i is in bin i
-      for (int i = 0; i < nItens; i++)
+      for (int i = 0; i < nItems; i++)
          bin[i][i] = true;
 
       /**
@@ -96,15 +96,15 @@ int main(int argc, char **argv)
       IloModel patGen(env);
 
       IloObjective ReducedCost = IloAdd(patGen, IloMinimize(env, 1));
-      IloNumVarArray Use(env, nItens, 0.0, 1, ILOINT);
+      IloNumVarArray Use(env, nItems, 0.0, 1, ILOINT);
       patGen.add(IloScalProd(itemWeight, Use) <= binCapacity);
 
       IloCplex patSolver(patGen);
       patSolver.setOut(env.getNullStream());
 
       /// COLUMN-GENERATION PROCEDURE ///
-      IloNumArray price(env, nItens);
-      IloNumArray newPatt(env, nItens);
+      IloNumArray price(env, nItems);
+      IloNumArray newPatt(env, nItems);
 
       int k = 2;
       while (true)
@@ -117,39 +117,37 @@ int main(int argc, char **argv)
          /// FIND AND ADD A NEW PATTERN ///
 #ifndef MOCHILA_MODEL
          double factor = 1000000;
-         for (int i = 0; i < nItens; i++)
+         for (int i = 0; i < nItems; i++)
             p[i] = (binPackingSolver.getDual(Fill[i]) > 0) ? factor * binPackingSolver.getDual(Fill[i]) : 0;
 
-         double rc = 1.0 - minknap(nItens, p, w, x, binCapacity) / factor;
+         double rc = 1.0 - minknap(nItems, p, w, x, binCapacity) / factor;
          // cout << "Knapsack cost:  " << fixed << rc << endl;
 
          if (rc > -EPSILON)
          {
             break;
          }
-         for (int i = 0; i < nItens; i++)
+         for (int i = 0; i < nItems; i++)
             newPatt[i] = x[i];
 #else
-         for (int i = 0; i < nItens; i++)
+         for (int i = 0; i < nItems; i++)
             price[i] = -binPackingSolver.getDual(Fill[i]);
 
          ReducedCost.setLinearCoefs(Use, price);
 
          patSolver.solve();
-         subDebug(patSolver, Use, ReducedCost);
 
          if (patSolver.getValue(ReducedCost) > -EPSILON)
-         {
             break;
-         }
+         
          patSolver.getValues(newPatt, Use);
 #endif
          Lambda.add(IloNumVar(binsUsed(1) + Fill(newPatt)));
 
          // Memorize the new colum
-         bin.push_back(vector<bool>(nItens, false));
-         for (int i = 0; i < nItens; i++)
-            bin.back()[i] = (x[i] > 0.9) ? true : false;
+         bin.push_back(vector<bool>(nItems, false));
+         for (int i = 0; i < nItems; i++)
+            bin.back()[i] = (newPatt[i] > 0.9) ? true : false;
       }
 
       masterBinPacking.add(IloConversion(env, Lambda, ILOINT));
