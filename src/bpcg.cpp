@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
+#include <vector>
 using namespace std;
 
 #define EPSILON 1e-6
@@ -14,6 +15,7 @@ static void readData(const char *filename, IloNum &binCapacity, IloNumArray &ite
 static void masterDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda, IloRangeArray Fill);
 static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use, IloObjective obj);
 static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda);
+vector<vector<bool>> bin;
 
 int main(int argc, char **argv)
 {
@@ -72,8 +74,14 @@ int main(int argc, char **argv)
        * Define range
        * */
       for (int i = 0; i < nItens; i++)
-         Fill.add(Lambda[i] == 1); // ? ? ?
+         Fill.add(Lambda[i] == 1);
       masterBinPacking.add(Fill);
+
+      // One item in each bin
+      bin = vector<vector<bool>>(nItens, vector<bool>(nItens, false));
+      // Item i is in bin i
+      for (int i = 0; i < nItens; i++)
+         bin[i][i] = true;
 
       /**
        * Define objective function
@@ -111,7 +119,7 @@ int main(int argc, char **argv)
          double factor = 1000000;
          for (int i = 0; i < nItens; i++)
             p[i] = (binPackingSolver.getDual(Fill[i]) > 0) ? factor * binPackingSolver.getDual(Fill[i]) : 0;
-         
+
          double rc = 1.0 - minknap(nItens, p, w, x, binCapacity) / factor;
          // cout << "Knapsack cost:  " << fixed << rc << endl;
 
@@ -128,7 +136,7 @@ int main(int argc, char **argv)
          ReducedCost.setLinearCoefs(Use, price);
 
          patSolver.solve();
-         subDebug (patSolver, Use, ReducedCost);
+         subDebug(patSolver, Use, ReducedCost);
 
          if (patSolver.getValue(ReducedCost) > -EPSILON)
          {
@@ -137,6 +145,11 @@ int main(int argc, char **argv)
          patSolver.getValues(newPatt, Use);
 #endif
          Lambda.add(IloNumVar(binsUsed(1) + Fill(newPatt)));
+
+         // Memorize the new colum
+         bin.push_back(vector<bool>(nItens, false));
+         for (int i = 0; i < nItens; i++)
+            bin.back()[i] = (x[i] > 0.9) ? true : false;
       }
 
       masterBinPacking.add(IloConversion(env, Lambda, ILOINT));
@@ -224,11 +237,19 @@ static void subDebug(IloAlgorithm &patSolver, IloNumVarArray Use,
 static void resultDebug(IloCplex &binPackingSolver, IloNumVarArray Lambda)
 {
    cout << endl;
-   cout << "Best integer solution uses "
+   cout << "Best solution uses "
         << binPackingSolver.getObjValue() << " bins" << endl;
-   cout << endl;
-   // for (IloInt j = 0; j < Lambda.getSize(); j++)
-   // {
-   //    cout << "  Lambda" << j << " = " << binPackingSolver.getValue(Lambda[j]) << endl;
-   // }
+   int b = 1;
+   for (IloInt k = 0; k < Lambda.getSize(); k++)
+   {
+      if (binPackingSolver.getValue(Lambda[k]) > 1.0 - EPSILON)
+      {
+         cout << "Bin[" << b << "] = ";
+         for (int i = 0; i < bin[k].size(); i++)
+            if (bin[k][i] == true)
+               cout << i + 1 << " ";
+         cout << endl;
+         b++;
+      }
+   }
 }
